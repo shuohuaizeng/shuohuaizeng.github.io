@@ -3,17 +3,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>习惯打卡 - 养成良好习惯的助手</title>
     <!-- PWA相关元标签 -->
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#34d399">
     <meta name="description" content="一个帮助您养成良好习惯的打卡应用">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="习惯打卡">
     <!-- iOS应用图标 -->
-    <link rel="apple-touch-icon" href="./icons/icon-180x180.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-180x180.svg">
     <!-- 应用图标 -->
-    <link rel="icon" type="image/svg+xml" href="./icons/icon-192x192.svg">
-    <link rel="mask-icon" href="./icons/maskable-icon.svg" color="#34d399">
+    <link rel="icon" type="image/svg+xml" href="/icons/icon-192x192.svg">
+    <link rel="mask-icon" href="/icons/maskable-icon.svg" color="#34d399">
     <!-- Tailwind CSS v3 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -1548,8 +1548,74 @@
         }
     </script>
     
+    <!-- PWA安装提示按钮 -->
+    <div id="install-prompt" class="fixed bottom-4 right-4 bg-primary text-white p-4 rounded-lg shadow-lg z-50 hidden">
+      <div class="flex items-center justify-between">
+        <div class="mr-4">
+          <h3 class="font-bold">添加到主屏幕</h3>
+          <p class="text-sm opacity-90">将习惯打卡应用安装到您的设备</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="install-button" class="bg-white text-primary px-4 py-2 rounded-md font-medium hover:bg-opacity-90 transition-colors">
+            安装
+          </button>
+          <button id="dismiss-install" class="bg-transparent text-white px-3 py-2 rounded-md hover:bg-white hover:bg-opacity-10 transition-colors">
+            稍后
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- PWA Service Worker注册 -->
     <script>
+      // 存储安装提示事件
+      let deferredPrompt;
+      const installPromptElement = document.getElementById('install-prompt');
+      const installButton = document.getElementById('install-button');
+      const dismissInstallButton = document.getElementById('dismiss-install');
+
+      // 监听beforeinstallprompt事件
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // 阻止Chrome 67及更早版本自动显示安装提示
+        e.preventDefault();
+        // 存储事件以便稍后触发
+        deferredPrompt = e;
+        // 显示自定义安装按钮
+        installPromptElement.classList.remove('hidden');
+        console.log('可以安装PWA了');
+      });
+
+      // 安装按钮点击事件
+      installButton.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        
+        // 显示安装提示
+        deferredPrompt.prompt();
+        
+        // 等待用户响应
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`用户选择: ${outcome}`);
+        
+        // 无论结果如何，重置延迟提示变量
+        deferredPrompt = null;
+        // 隐藏安装提示
+        installPromptElement.classList.add('hidden');
+      });
+
+      // 关闭安装提示
+      dismissInstallButton.addEventListener('click', () => {
+        installPromptElement.classList.add('hidden');
+        // 可以存储用户的拒绝，一段时间内不再显示
+        localStorage.setItem('installPromptDismissed', Date.now());
+      });
+
+      // 监听已安装事件
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('应用已安装');
+        installPromptElement.classList.add('hidden');
+        // 可以显示安装成功的通知
+      });
+
       // 注册Service Worker
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
